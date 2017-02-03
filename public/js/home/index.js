@@ -37,6 +37,15 @@ window.onload = function() {
       anchor: new google.maps.Point(5, 5),
       scaledSize: new google.maps.Size(10, 10)
     };
+
+
+  google.maps.Polyline.prototype.getBounds = function() {
+    var bounds = new google.maps.LatLngBounds();
+    this.getPath().forEach(function(item, index) {
+        bounds.extend(new google.maps.LatLng(item.lat(), item.lng()));
+    });
+    return bounds;
+  };
 }
 
 function error(err) {
@@ -88,8 +97,37 @@ function updateRoute() {
       // }
 
       if (!!response.routes.length) {
+
+        // boundingBox of route
         var routeArray = response.routes[0].overview_path;
-        for(var i = 0; i < routeArray.length; i=i+5) {
+
+        // var p1 = new google.maps.LatLng({lat: routeArray[0].lat(), lng: routeArray[0].lng() });
+        // var p2 = new google.maps.LatLng({lat: routeArray[0].lat(), lng: routeArray[routeArray.length-1].lng() });
+        // var p3 = new google.maps.LatLng({lat: routeArray[routeArray.length-1].lat(), lng: routeArray[routeArray.length-1].lng() });
+        // var p4 = new google.maps.LatLng({lat: routeArray[routeArray.length-1].lat(), lng: routeArray[0].lng() });
+        // var line = new google.maps.Polyline({
+        //     path: [p1, p2, p3, p4, p1],
+        //     strokeColor: "#000000",
+        //     strokeOpacity: 0.6,
+        //     strokeWeight: 2,
+        //     map: window.map
+        // });
+        // var _p2 = farthestPointTo(routeArray, p1);
+        // var _p1 = farthestPointTo(routeArray, _p2);
+        // _p2 = farthestPointTo(routeArray, _p1);
+        // var _p3 = new google.maps.LatLng({lat: _p1.lat(), lng: _p2.lng() });
+        // var _p4 = new google.maps.LatLng({lat: _p2.lat(), lng: _p1.lng() });
+        // var line = new google.maps.Polyline({
+        //     path: [_p1, _p3, _p2, _p4, _p1],
+        //     strokeColor: "#00CCCC",
+        //     strokeOpacity: 0.6,
+        //     strokeWeight: 2,
+        //     map: window.map
+        // });
+
+        getBoundingBox(routeArray);
+
+        for(var i = 0; i < routeArray.length; i=i+1) {
 
           calculateMatch(
             createMarker({lat: routeArray[i].lat(), lng: routeArray[i].lng()})
@@ -101,6 +139,37 @@ function updateRoute() {
       }
     }
   });
+}
+
+function farthestPointTo(array, p) {
+  var tempDistance = 0;
+  var tempPoint;
+  for(var i in array) {
+      var d = google.maps.geometry.spherical.computeDistanceBetween(array[i], p)
+      if(d > tempDistance) {
+        tempDistance = d;
+        tempPoint = array[i];
+      }
+  }
+  return tempPoint;
+}
+
+function getBoundingBox(array) {
+  var line = new google.maps.Polyline({
+      path: array
+  });
+
+  var bounds = line.getBounds();
+  var northWest = new google.maps.LatLng({lat: bounds.getNorthEast().lat(), lng: bounds.getSouthWest().lng() });
+  var southEast = new google.maps.LatLng({lat: bounds.getSouthWest().lat(), lng: bounds.getNorthEast().lng() });
+  var line = new google.maps.Polyline({
+      path: [bounds.getNorthEast(), northWest, bounds.getSouthWest(), southEast, bounds.getNorthEast()],
+      strokeColor: "#FF0000",
+      strokeOpacity: 0.6,
+      strokeWeight: 2,
+      map: window.map
+  });
+
 }
 
 function calculateMatch(posToEvaluate) {
